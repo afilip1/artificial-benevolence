@@ -1,7 +1,8 @@
 [package]
 name = "artificial_benevolence"
 version = "0.1.0"
-authors = []
+authors = ["Yuurai"]
+edition = "2018"
 
 [dependencies]
 amethyst = "0.8.0"

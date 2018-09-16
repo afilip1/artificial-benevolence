@@ -1,46 +1,42 @@
-extern crate amethyst;
+mod components;
+mod states;
+mod systems;
 
-use amethyst::prelude::*;
-use amethyst::input::{is_close_requested, is_key_down}; 
-use amethyst::renderer::{DisplayConfig, DrawFlat, Event, Pipeline, PosNormTex,
-                         RenderBundle, Stage, VirtualKeyCode};
-
-struct Example;
-
-impl<'a, 'b> State<GameData<'a, 'b>> for Example {
-    fn handle_event(&mut self, _: StateData<GameData>, event: Event) -> Trans<GameData<'a, 'b>> {
-        if is_close_requested(&event) || is_key_down(&event, VirtualKeyCode::Escape) {
-            Trans::Quit
-        } else {
-            Trans::None
-        }
-    }
-
-    fn update(&mut self, data: StateData<GameData>) -> Trans<GameData<'a, 'b>> {
-        data.data.update(&data.world);
-        Trans::None
-    }
-}
+use amethyst::{
+    core::transform::TransformBundle,
+    input::InputBundle,
+    prelude::*,
+    renderer::{DrawFlat, PosTex},
+};
 
 fn main() -> Result<(), amethyst::Error> {
     amethyst::start_logger(Default::default());
 
-    let path = format!(
+    let display_config = format!(
         "{}/resources/display_config.ron",
         env!("CARGO_MANIFEST_DIR")
     );
-    let config = DisplayConfig::load(&path);
-
-    let pipe = Pipeline::build().with_stage(
-        Stage::with_backbuffer()
-            .clear_target([0.00196, 0.23726, 0.21765, 1.0], 1.0)
-            .with_pass(DrawFlat::<PosNormTex>::new()),
+    let bindings_config = format!(
+        "{}/resources/bindings_config.ron",
+        env!("CARGO_MANIFEST_DIR")
     );
+    let assets_dir = format!("{}/assets/", env!("CARGO_MANIFEST_DIR"));
+
+    let input_bundle =
+        InputBundle::<String, String>::new().with_bindings_from_file(bindings_config)?;
 
     let game_data = GameDataBuilder::default()
-        .with_bundle(RenderBundle::new(pipe, Some(config)))?;
-    let mut game = Application::build("./", Example)?
-        .build(game_data)?;
-    game.run();
+        .with_bundle(TransformBundle::new())?
+        .with_bundle(input_bundle)?
+        .with(
+            systems::MovementSystem,
+            "movement_system",
+            &["input_system"],
+        ).with_basic_renderer(display_config, DrawFlat::<PosTex>::new(), false)?;
+
+    Application::build(assets_dir, states::Game)?
+        .build(game_data)?
+        .run();
+
     Ok(())
 }
