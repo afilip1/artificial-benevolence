@@ -15,11 +15,11 @@ lazy_static! {
 }
 
 #[derive(Default)]
-pub struct CursorSystem {
+pub struct CursorMovementSystem {
     is_moving: [bool; 4],
 }
 
-impl<'a> System<'a> for CursorSystem {
+impl<'a> System<'a> for CursorMovementSystem {
     type SystemData = (
         WriteStorage<'a, Transform>,
         WriteStorage<'a, Cursor>,

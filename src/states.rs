@@ -1,4 +1,5 @@
 use super::components;
+use itertools::iproduct;
 use amethyst::{
     assets::{AssetStorage, Loader},
     core::{
@@ -13,8 +14,8 @@ use amethyst::{
     },
 };
 
-const ARENA_WIDTH: f32 = 680.0;
-const ARENA_HEIGHT: f32 = 384.0;
+const ARENA_WIDTH: f32 = 329.0;
+const ARENA_HEIGHT: f32 = 329.0;
 
 #[derive(Default)]
 pub struct Map {
@@ -154,19 +155,17 @@ impl Game {
             flip_vertical: false,
         };
 
-        for x in 0..self.map_width {
-            for y in 0..self.map_height {
-                let mut transform = Transform::default();
-                transform.translation = Vector3::new(x as f32 * 33.0, y as f32 * 33.0, 0.0);
+        for (y, x) in iproduct!(0..self.map_height, 0..self.map_width) {
+            let mut transform = Transform::default();
+            transform.translation = Vector3::new(x as f32 * 33.0, y as f32 * 33.0, 0.0);
 
-                world
-                    .create_entity()
-                    .with(sprite_render_tile.clone())
-                    .with(components::Tile)
-                    .with(GlobalTransform::default())
-                    .with(transform)
-                    .build();
-            }
+            world
+                .create_entity()
+                .with(sprite_render_tile.clone())
+                .with(components::Tile)
+                .with(GlobalTransform::default())
+                .with(transform)
+                .build();
         }
     }
 

@@ -44,7 +44,7 @@ fn main() -> Result<(), amethyst::Error> {
         .with_bundle(TransformBundle::new())?
         .with_bundle(input_bundle)?
         .with(
-            systems::CursorSystem::default(),
+            systems::CursorMovementSystem::default(),
             "cursor_system",
             &["input_system"],
         ).with_bundle(RenderBundle::new(pipe, Some(display_config)).with_sprite_sheet_processor())?;
