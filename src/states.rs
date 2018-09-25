@@ -1,5 +1,4 @@
-use super::components;
-use itertools::iproduct;
+use super::{components, resources};
 use amethyst::{
     assets::{AssetStorage, Loader},
     core::{
@@ -13,33 +12,25 @@ use amethyst::{
         Texture, TextureCoordinates,
     },
 };
+use itertools::iproduct;
 
 const ARENA_WIDTH: f32 = 329.0;
 const ARENA_HEIGHT: f32 = 329.0;
 
-#[derive(Default)]
-pub struct Map {
-    pub width: u8,
-    pub height: u8,
-}
-
 pub struct Game {
-    pub map_width: u8,
-    pub map_height: u8,
+    pub map: resources::Map,
 }
 
 impl<'a, 'b> SimpleState<'a, 'b> for Game {
     fn on_start(&mut self, data: StateData<GameData>) {
         data.world.register::<components::Tile>();
         data.world.register::<components::Cursor>();
-        data.world.add_resource(Map {
-            width: self.map_width,
-            height: self.map_height,
-        });
 
         self.init_tiles(data.world);
         self.init_cursor(data.world);
         self.init_camera(data.world);
+
+        data.world.add_resource(self.map.clone());
     }
 }
 
@@ -104,12 +95,12 @@ impl Game {
             .build();
     }
 
-    fn init_tiles(&self, world: &mut World) {
+    fn init_tiles(&mut self, world: &mut World) {
         let texture_handle = {
             let loader = world.read_resource::<Loader>();
             let texture_storage = world.read_resource::<AssetStorage<Texture>>();
             loader.load(
-                "ground_tile.png",
+                "terrain.png",
                 PngFormat,
                 Default::default(),
                 (),
@@ -123,23 +114,37 @@ impl Game {
             material_texture_set.insert(texture_id, texture_handle);
         }
 
-        let tex_coords = TextureCoordinates {
+        let ground_tex = TextureCoordinates {
             left: 0.0,
+            right: 0.5,
+            bottom: 0.0,
+            top: 1.0,
+        };
+
+        let ground_sprite = Sprite {
+            width: 32.0,
+            height: 32.0,
+            offsets: [0.0, 0.0],
+            tex_coords: ground_tex,
+        };
+
+        let river_tex = TextureCoordinates {
+            left: 0.5,
             right: 1.0,
             bottom: 0.0,
             top: 1.0,
         };
 
-        let tile_sprite = Sprite {
+        let river_sprite = Sprite {
             width: 32.0,
             height: 32.0,
             offsets: [0.0, 0.0],
-            tex_coords,
+            tex_coords: river_tex,
         };
 
         let sprite_sheet = SpriteSheet {
             texture_id,
-            sprites: vec![tile_sprite],
+            sprites: vec![ground_sprite, river_sprite],
         };
 
         let sprite_sheet_handle = {
@@ -148,24 +153,47 @@ impl Game {
             loader.load_from_data(sprite_sheet, (), &sprite_sheet_store)
         };
 
-        let sprite_render_tile = SpriteRender {
+        let sprite_render_ground = SpriteRender {
             sprite_sheet: sprite_sheet_handle.clone(),
             sprite_number: 0,
             flip_horizontal: false,
             flip_vertical: false,
         };
 
-        for (y, x) in iproduct!(0..self.map_height, 0..self.map_width) {
+        let sprite_render_river = SpriteRender {
+            sprite_sheet: sprite_sheet_handle.clone(),
+            sprite_number: 1,
+            flip_horizontal: false,
+            flip_vertical: false,
+        };
+
+        for (y, x) in iproduct!(0..self.map.height, 0..self.map.width) {
             let mut transform = Transform::default();
             transform.translation = Vector3::new(x as f32 * 33.0, y as f32 * 33.0, 0.0);
 
-            world
-                .create_entity()
-                .with(sprite_render_tile.clone())
-                .with(components::Tile)
-                .with(GlobalTransform::default())
-                .with(transform)
-                .build();
+            if rand::random::<f32>() > 0.9 {
+                self.map.tiles.push(
+                    world
+                        .create_entity()
+                        .with(sprite_render_river.clone())
+                        .with(components::Tile {
+                            terrain: components::Terrain::Water,
+                        }).with(GlobalTransform::default())
+                        .with(transform)
+                        .build(),
+                );
+            } else {
+                self.map.tiles.push(
+                    world
+                        .create_entity()
+                        .with(sprite_render_ground.clone())
+                        .with(components::Tile {
+                            terrain: components::Terrain::Ground,
+                        }).with(GlobalTransform::default())
+                        .with(transform)
+                        .build(),
+                );
+            };
         }
     }
 

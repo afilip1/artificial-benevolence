@@ -10,8 +10,9 @@ pub struct Map {
 impl Map {
     pub fn new(width: u8, height: u8) -> Map {
         Map {
-            width, height,
-            tiles: Vec::with_capacity((width*height) as usize)
+            width,
+            height,
+            tiles: Vec::with_capacity((width * height) as usize),
         }
     }
 }

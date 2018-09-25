@@ -1,4 +1,5 @@
 mod components;
+mod resources;
 mod states;
 mod systems;
 
@@ -12,7 +13,7 @@ use amethyst::{
 };
 
 fn main() -> Result<(), amethyst::Error> {
-    amethyst::start_logger(Default::default());
+    // amethyst::start_logger(Default::default());
 
     let display_config = {
         let path = format!(
@@ -45,14 +46,17 @@ fn main() -> Result<(), amethyst::Error> {
         .with_bundle(input_bundle)?
         .with(
             systems::CursorMovementSystem::default(),
-            "cursor_system",
+            "cursor_movement_system",
             &["input_system"],
+        ).with(
+            systems::CursorHoverInfoSystem,
+            "cursor_hover_info_system",
+            &["cursor_movement_system"],
         ).with_bundle(RenderBundle::new(pipe, Some(display_config)).with_sprite_sheet_processor())?;
 
     let assets_dir = format!("{}/assets/", env!("CARGO_MANIFEST_DIR"));
     let initial_state = states::Game {
-        map_height: 10,
-        map_width: 10,
+        map: resources::Map::new(10, 10),
     };
 
     Application::build(assets_dir, initial_state)?

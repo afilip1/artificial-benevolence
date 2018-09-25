@@ -1,6 +1,22 @@
 use amethyst::ecs::prelude::*;
 
-pub struct Tile;
+#[derive(Debug)]
+pub enum Terrain {
+    Ground,
+    Water,
+}
+
+pub struct Tile {
+    pub terrain: Terrain,
+}
+
+impl Default for Tile {
+    fn default() -> Self {
+        Tile {
+            terrain: Terrain::Ground,
+        }
+    }
+}
 
 impl Component for Tile {
     type Storage = DenseVecStorage<Self>;

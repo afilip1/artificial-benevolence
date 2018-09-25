@@ -1,7 +1,10 @@
 use amethyst::core::Transform;
-use amethyst::ecs::{Join, Read, System, WriteStorage};
+use amethyst::ecs::{Join, Read, ReadStorage, System, WriteStorage};
 use amethyst::input::InputHandler;
-use crate::{components::Cursor, states::Map};
+use crate::{
+    components::{Cursor, Tile},
+    resources::Map,
+};
 use itertools::izip;
 use lazy_static::lazy_static;
 
@@ -34,6 +37,7 @@ impl<'a> System<'a> for CursorMovementSystem {
             .collect();
 
         for (cursor, transform) in (&mut cursors, &mut transforms).join() {
+            println!("{}:{}", cursor.0, cursor.1);
             for (&is_down, is_moving, mov) in izip!(&actions_down, &mut self.is_moving, &MOVES[..])
             {
                 if !is_down {
@@ -46,6 +50,24 @@ impl<'a> System<'a> for CursorMovementSystem {
                     transform.translation[1] = cursor.1 as f32 * 33.0;
                 }
             }
+        }
+    }
+}
+
+pub struct CursorHoverInfoSystem;
+
+impl<'a> System<'a> for CursorHoverInfoSystem {
+    type SystemData = (
+        ReadStorage<'a, Cursor>,
+        ReadStorage<'a, Tile>,
+        Read<'a, Map>,
+    );
+
+    fn run(&mut self, (cursors, tiles, map): Self::SystemData) {
+        for cursor in cursors.join() {
+            let hovered_tile_entity = map.tiles[(cursor.1 * map.height + cursor.0) as usize];
+            let hovered_tile = tiles.get(hovered_tile_entity).unwrap();
+            println!("{:?}", hovered_tile.terrain); // TODO: actual UI
         }
     }
 }
