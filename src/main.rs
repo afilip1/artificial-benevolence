@@ -6,35 +6,56 @@ use amethyst::{
     core::transform::TransformBundle,
     input::InputBundle,
     prelude::*,
-    renderer::{DrawFlat, PosTex},
+    renderer::{
+        ColorMask, DepthMode, DisplayConfig, DrawSprite, Pipeline, RenderBundle, Stage, ALPHA,
+    },
 };
 
 fn main() -> Result<(), amethyst::Error> {
     amethyst::start_logger(Default::default());
 
-    let display_config = format!(
-        "{}/resources/display_config.ron",
-        env!("CARGO_MANIFEST_DIR")
+    let display_config = {
+        let path = format!(
+            "{}/resources/display_config.ron",
+            env!("CARGO_MANIFEST_DIR")
+        );
+        DisplayConfig::load(&path)
+    };
+
+    let pipe = Pipeline::build().with_stage(
+        Stage::with_backbuffer()
+            .clear_target([0.0, 0.0, 0.0, 1.0], 1.0)
+            .with_pass(DrawSprite::new().with_transparency(
+                ColorMask::all(),
+                ALPHA,
+                Some(DepthMode::LessEqualWrite),
+            )),
     );
-    let bindings_config = format!(
+
+    let binding_path = format!(
         "{}/resources/bindings_config.ron",
         env!("CARGO_MANIFEST_DIR")
     );
-    let assets_dir = format!("{}/assets/", env!("CARGO_MANIFEST_DIR"));
 
     let input_bundle =
-        InputBundle::<String, String>::new().with_bindings_from_file(bindings_config)?;
+        InputBundle::<String, String>::new().with_bindings_from_file(binding_path)?;
 
     let game_data = GameDataBuilder::default()
         .with_bundle(TransformBundle::new())?
         .with_bundle(input_bundle)?
         .with(
-            systems::MovementSystem,
-            "movement_system",
+            systems::CursorSystem::default(),
+            "cursor_system",
             &["input_system"],
-        ).with_basic_renderer(display_config, DrawFlat::<PosTex>::new(), false)?;
+        ).with_bundle(RenderBundle::new(pipe, Some(display_config)).with_sprite_sheet_processor())?;
 
-    Application::build(assets_dir, states::Game)?
+    let assets_dir = format!("{}/assets/", env!("CARGO_MANIFEST_DIR"));
+    let initial_state = states::Game {
+        map_height: 10,
+        map_width: 10,
+    };
+
+    Application::build(assets_dir, initial_state)?
         .build(game_data)?
         .run();
 

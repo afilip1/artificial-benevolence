@@ -5,4 +5,6 @@ authors = ["Yuurai"]
 edition = "2018"
 
 [dependencies]
-amethyst = "0.8.0"
+amethyst = { git = "https://github.com/amethyst/amethyst", branch = "develop" }
+lazy_static = "1.1.0"
+itertools = "0.7.8"

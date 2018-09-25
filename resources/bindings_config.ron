@@ -1,7 +1,9 @@
 (
-  axes: {
-    "horizontal": Emulated(pos: Key(Right), neg: Key(Left)),
-    "vertical": Emulated(pos: Key(Up), neg: Key(Down)),
+  axes: {},
+  actions: {
+      "left": [Key(Left)],
+      "right": [Key(Right)],
+      "up": [Key(Up)],
+      "down": [Key(Down)],
   },
-  actions: {},
 )
