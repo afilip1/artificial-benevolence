@@ -5,7 +5,7 @@ authors = ["Yuurai"]
 edition = "2018"
 
 [dependencies]
-amethyst = { git = "https://github.com/amethyst/amethyst", branch = "develop" }
+amethyst = { git = "https://github.com/amethyst/amethyst", branch = "develop", features = ["nightly"] }
 lazy_static = "1.1.0"
 itertools = "0.7.8"
 rand = "0.5.5"

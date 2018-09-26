@@ -10,10 +10,11 @@ use amethyst::{
     renderer::{
         ColorMask, DepthMode, DisplayConfig, DrawSprite, Pipeline, RenderBundle, Stage, ALPHA,
     },
+    ui::{DrawUi, UiBundle},
 };
 
 fn main() -> Result<(), amethyst::Error> {
-    // amethyst::start_logger(Default::default());
+    amethyst::start_logger(Default::default());
 
     let display_config = {
         let path = format!(
@@ -30,7 +31,7 @@ fn main() -> Result<(), amethyst::Error> {
                 ColorMask::all(),
                 ALPHA,
                 Some(DepthMode::LessEqualWrite),
-            )),
+            )).with_pass(DrawUi::new()),
     );
 
     let binding_path = format!(
@@ -38,12 +39,11 @@ fn main() -> Result<(), amethyst::Error> {
         env!("CARGO_MANIFEST_DIR")
     );
 
-    let input_bundle =
-        InputBundle::<String, String>::new().with_bindings_from_file(binding_path)?;
-
     let game_data = GameDataBuilder::default()
         .with_bundle(TransformBundle::new())?
-        .with_bundle(input_bundle)?
+        .with_bundle(InputBundle::<String, String>::new().with_bindings_from_file(binding_path)?)?
+        .with_bundle(RenderBundle::new(pipe, Some(display_config)).with_sprite_sheet_processor())?
+        .with_bundle(UiBundle::<String, String>::new())?
         .with(
             systems::CursorMovementSystem::default(),
             "cursor_movement_system",
@@ -52,7 +52,7 @@ fn main() -> Result<(), amethyst::Error> {
             systems::CursorHoverInfoSystem,
             "cursor_hover_info_system",
             &["cursor_movement_system"],
-        ).with_bundle(RenderBundle::new(pipe, Some(display_config)).with_sprite_sheet_processor())?;
+        );
 
     let assets_dir = format!("{}/assets/", env!("CARGO_MANIFEST_DIR"));
     let initial_state = states::Game {

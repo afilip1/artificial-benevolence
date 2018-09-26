@@ -1,8 +1,8 @@
 (
   title: "Artificial Benevolence (working title)",
-  dimensions: Some((658, 658)),
-  max_dimensions: None,
-  min_dimensions: None,
+  dimensions: Some((958, 658)),
+  max_dimensions: Some((958, 658)),
+  min_dimensions: Some((958, 658)),
   fullscreen: false,
   multisampling: 1,
   visibility: true,
