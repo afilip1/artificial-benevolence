@@ -6,7 +6,7 @@ use amethyst::{
 };
 use crate::{
     components::{Cursor, Tile},
-    resources::Map,
+    states::Map,
 };
 use itertools::izip;
 use lazy_static::lazy_static;
@@ -48,14 +48,15 @@ impl<'a> System<'a> for CursorMovementSystem {
                     *is_moving = true;
                     mov(cursor, &map);
 
-                    transform.translation[0] = cursor.0 as f32 * 33.0;
-                    transform.translation[1] = cursor.1 as f32 * 33.0;
+                    transform.translation[0] = f32::from(cursor.0) * 33.0;
+                    transform.translation[1] = f32::from(cursor.1) * 33.0;
                 }
             }
         }
     }
 }
 
+// TODO: combine stuff for perf optims
 pub struct CursorHoverInfoSystem;
 
 impl<'a> System<'a> for CursorHoverInfoSystem {

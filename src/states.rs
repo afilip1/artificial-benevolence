@@ -1,6 +1,5 @@
-use super::{components, resources};
 use amethyst::{
-    assets::{AssetStorage, Loader},
+    assets::Loader,
     core::{
         cgmath::{Matrix4, Vector3},
         transform::{GlobalTransform, Transform},
@@ -13,16 +12,26 @@ use amethyst::{
     },
     ui::{Anchor, TtfFormat, UiText, UiTransform},
 };
+use crate::components;
 use itertools::iproduct;
 
 const ARENA_WIDTH: f32 = 479.0;
 const ARENA_HEIGHT: f32 = 329.0;
 
-pub struct Game {
-    pub map: resources::Map,
+#[derive(Default, Clone)]
+pub struct Map {
+    pub width: u8,
+    pub height: u8,
+    pub tiles: Vec<Entity>,
 }
 
-impl<'a, 'b> SimpleState<'a, 'b> for Game {
+pub struct Ui(pub Entity);
+
+pub struct MapState {
+    pub dimensions: (u8, u8),
+}
+
+impl<'a, 'b> SimpleState<'a, 'b> for MapState {
     fn on_start(&mut self, data: StateData<GameData>) {
         let sprite_sheet_handle = self.load_sprite_sheet(data.world);
 
@@ -30,14 +39,10 @@ impl<'a, 'b> SimpleState<'a, 'b> for Game {
         self.init_cursor(data.world, sprite_sheet_handle);
         self.init_ui(data.world);
         self.init_camera(data.world);
-
-        data.world.add_resource(self.map.clone());
     }
 }
 
-pub struct Ui(pub Entity);
-
-impl Game {
+impl MapState {
     fn load_sprite_sheet(&self, world: &mut World) -> SpriteSheetHandle {
         let texture_handle = world.read_resource::<Loader>().load(
             "spritesheet.png",
@@ -48,10 +53,11 @@ impl Game {
         );
 
         let texture_id = 0;
-        let mut material_texture_set = world.write_resource::<MaterialTextureSet>();
-        material_texture_set.insert(texture_id, texture_handle);
+        world
+            .write_resource::<MaterialTextureSet>()
+            .insert(texture_id, texture_handle);
 
-        // TODO: reduce boilerplate
+        // TODO: reduce boilerplate (macros?)
         let cursor_tex = TextureCoordinates {
             left: 0.0,
             right: 0.5,
@@ -99,13 +105,9 @@ impl Game {
             sprites: vec![ground_sprite, water_sprite, cursor_sprite],
         };
 
-        let sprite_sheet_handle = {
-            let loader = world.read_resource::<Loader>();
-            let sprite_sheet_store = world.read_resource::<AssetStorage<SpriteSheet>>();
-            loader.load_from_data(sprite_sheet, (), &sprite_sheet_store)
-        };
-
-        sprite_sheet_handle
+        world
+            .read_resource::<Loader>()
+            .load_from_data(sprite_sheet, (), &world.read_resource())
     }
 
     fn init_tiles(&mut self, world: &mut World, sprite_sheet_handle: SpriteSheetHandle) {
@@ -123,9 +125,12 @@ impl Game {
             flip_vertical: false,
         };
 
-        for (y, x) in iproduct!(0..self.map.height, 0..self.map.width) {
+        let (width, height) = self.dimensions;
+        let mut tiles = Vec::with_capacity((width * height) as usize);
+
+        for (y, x) in iproduct!(0..height, 0..width) {
             let mut transform = Transform::default();
-            transform.translation = Vector3::new(x as f32 * 33.0, y as f32 * 33.0, 0.0);
+            transform.translation = Vector3::new(f32::from(x) * 33.0, f32::from(y) * 33.0, 0.0);
 
             let mut tile = world
                 .create_entity()
@@ -146,8 +151,14 @@ impl Game {
                     });
             };
 
-            self.map.tiles.push(tile.build());
+            tiles.push(tile.build());
         }
+
+        world.add_resource(Map {
+            width,
+            height,
+            tiles,
+        });
     }
 
     fn init_cursor(&self, world: &mut World, sprite_sheet_handle: SpriteSheetHandle) {
@@ -171,7 +182,7 @@ impl Game {
         let font = world.read_resource::<Loader>().load(
             "square.ttf",
             TtfFormat,
-            Default::default(),
+            (),
             (),
             &world.read_resource(),
         );
@@ -179,23 +190,19 @@ impl Game {
         let ui_transform = UiTransform::new(
             "ui".to_string(),
             Anchor::TopRight,
-            -140.,
-            30.,
-            1.,
-            300.,
-            50.,
+            -140.0,
+            30.0,
+            1.0,
+            300.0,
+            50.0,
             0,
         );
 
         let ui = world
             .create_entity()
             .with(ui_transform)
-            .with(UiText::new(
-                font.clone(),
-                "Terrain: ".to_string(),
-                [1.0, 1.0, 1.0, 1.0],
-                36.,
-            )).build();
+            .with(UiText::new(font, String::new(), [1.0, 1.0, 1.0, 1.0], 36.0))
+            .build();
 
         world.add_resource(Ui(ui));
     }
