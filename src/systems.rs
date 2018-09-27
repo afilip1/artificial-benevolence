@@ -5,8 +5,8 @@ use amethyst::{
     ui::UiText,
 };
 use crate::{
-    components::{Cursor, Tile},
-    states::Map,
+    components::{Cursor, Tile, Unit},
+    states::{Map, Ui},
 };
 use itertools::izip;
 use lazy_static::lazy_static;
@@ -30,7 +30,7 @@ impl<'a> System<'a> for CursorMovementSystem {
         WriteStorage<'a, Transform>,
         WriteStorage<'a, Cursor>,
         Read<'a, InputHandler<String, String>>,
-        Read<'a, Map>,
+        ReadExpect<'a, Map>,
     );
 
     fn run(&mut self, (mut transforms, mut cursors, input, map): Self::SystemData) {
@@ -57,15 +57,15 @@ impl<'a> System<'a> for CursorMovementSystem {
 }
 
 // TODO: combine stuff for perf optims
-pub struct CursorHoverInfoSystem;
+pub struct CursorHoverTerrainInfoSystem;
 
-impl<'a> System<'a> for CursorHoverInfoSystem {
+impl<'a> System<'a> for CursorHoverTerrainInfoSystem {
     type SystemData = (
         WriteStorage<'a, UiText>,
         ReadStorage<'a, Cursor>,
         ReadStorage<'a, Tile>,
-        Read<'a, Map>,
-        ReadExpect<'a, crate::states::Ui>,
+        ReadExpect<'a, Map>,
+        ReadExpect<'a, Ui>,
     );
 
     fn run(&mut self, (mut ui_text, cursors, tiles, map, ui): Self::SystemData) {
@@ -73,8 +73,37 @@ impl<'a> System<'a> for CursorHoverInfoSystem {
             let hovered_tile_entity = map.tiles[(cursor.1 * map.height + cursor.0) as usize];
             let hovered_tile = tiles.get(hovered_tile_entity).unwrap();
 
-            if let Some(text) = ui_text.get_mut(ui.0) {
+            if let Some(text) = ui_text.get_mut(ui.terrain) {
                 text.text = format!("Terrain: {:?}", hovered_tile.terrain);
+            }
+        }
+    }
+}
+
+pub struct CursorHoverUnitInfoSystem;
+
+impl<'a> System<'a> for CursorHoverUnitInfoSystem {
+    type SystemData = (
+        WriteStorage<'a, UiText>,
+        ReadStorage<'a, Cursor>,
+        ReadStorage<'a, Unit>,
+        ReadExpect<'a, Map>,
+        ReadExpect<'a, Ui>,
+    );
+
+    fn run(&mut self, (mut ui_text, cursors, units, map, ui): Self::SystemData) {
+        for cursor in cursors.join() {
+            if let Some(hovered_unit_entity) = map.units[(cursor.1 * map.height + cursor.0) as usize]
+            {
+                let hovered_unit = units.get(hovered_unit_entity).unwrap();
+
+                if let Some(text) = ui_text.get_mut(ui.unit) {
+                    text.text = format!("Unit: {:?}", hovered_unit.kind);
+                }
+            } else {
+                if let Some(text) = ui_text.get_mut(ui.unit) {
+                    text.text = format!("Unit: none");
+                }
             }
         }
     }

@@ -18,17 +18,31 @@ use itertools::iproduct;
 const ARENA_WIDTH: f32 = 479.0;
 const ARENA_HEIGHT: f32 = 329.0;
 
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct Map {
     pub width: u8,
     pub height: u8,
     pub tiles: Vec<Entity>,
+    pub units: Vec<Option<Entity>>,
 }
 
-pub struct Ui(pub Entity);
+impl Map {
+    pub fn new(width: u8, height: u8) -> Map {
+        Map {
+            width, height,
+            tiles: Vec::with_capacity((width*height) as usize),
+            units: std::iter::repeat(None).take((width*height) as usize).collect(),
+        }
+    }
+}
+
+pub struct Ui {
+    pub terrain: Entity,
+    pub unit: Entity,
+}
 
 pub struct MapState {
-    pub dimensions: (u8, u8),
+    pub map: Map,
 }
 
 impl<'a, 'b> SimpleState<'a, 'b> for MapState {
@@ -42,6 +56,8 @@ impl<'a, 'b> SimpleState<'a, 'b> for MapState {
         self.init_cursor(data.world, sprite_sheet_handle);
         self.init_ui(data.world);
         self.init_camera(data.world);
+
+        data.world.add_resource(self.map.clone());
     }
 }
 
@@ -142,8 +158,7 @@ impl MapState {
             flip_vertical: false,
         };
 
-        let (width, height) = self.dimensions;
-        let mut tiles = Vec::with_capacity((width * height) as usize);
+        let (width, height) = (self.map.width, self.map.height);
 
         for (y, x) in iproduct!(0..height, 0..width) {
             let mut transform = Transform::default();
@@ -168,14 +183,8 @@ impl MapState {
                     });
             };
 
-            tiles.push(tile.build());
+            self.map.tiles.push(tile.build());
         }
-
-        world.add_resource(Map {
-            width,
-            height,
-            tiles,
-        });
     }
 
     fn init_units(&mut self, world: &mut World, sprite_sheet_handle: SpriteSheetHandle) {
@@ -186,12 +195,16 @@ impl MapState {
             flip_vertical: false,
         };
         
-        world.create_entity()
+        let unit = world.create_entity()
             .with(GlobalTransform::default())
             .with(Transform::default())
-            .with(components::Unit)
+            .with(components::Unit {
+                kind: components::UnitKind::Tank,
+            })
             .with(sprite_render_tank)
             .build();
+
+        self.map.units[0] = Some(unit);
     }
 
     fn init_cursor(&self, world: &mut World, sprite_sheet_handle: SpriteSheetHandle) {
@@ -211,7 +224,7 @@ impl MapState {
             .build();
     }
 
-    fn init_ui(&mut self, world: &mut World) {
+    fn init_ui(&self, world: &mut World) {
         let font = world.read_resource::<Loader>().load(
             "square.ttf",
             TtfFormat,
@@ -220,8 +233,8 @@ impl MapState {
             &world.read_resource(),
         );
 
-        let ui_transform = UiTransform::new(
-            "ui".to_string(),
+        let ui_transform_terrain = UiTransform::new(
+            "ui_terrain".to_string(),
             Anchor::TopRight,
             -140.0,
             30.0,
@@ -231,13 +244,30 @@ impl MapState {
             0,
         );
 
-        let ui = world
+        let ui_transform_unit = UiTransform::new(
+            "ui_unit".to_string(),
+            Anchor::TopRight,
+            -140.0,
+            80.0,
+            1.0,
+            300.0,
+            50.0,
+            0,
+        );
+
+        let terrain = world
             .create_entity()
-            .with(ui_transform)
+            .with(ui_transform_terrain)
+            .with(UiText::new(font.clone(), String::new(), [1.0, 1.0, 1.0, 1.0], 36.0))
+            .build();
+
+        let unit = world
+            .create_entity()
+            .with(ui_transform_unit)
             .with(UiText::new(font, String::new(), [1.0, 1.0, 1.0, 1.0], 36.0))
             .build();
 
-        world.add_resource(Ui(ui));
+        world.add_resource(Ui {terrain, unit});
     }
 
     fn init_camera(&self, world: &mut World) {

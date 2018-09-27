@@ -56,14 +56,17 @@ fn main() -> Result<(), amethyst::Error> {
             "cursor_movement_system",
             &["input_system"],
         ).with(
-            systems::CursorHoverInfoSystem,
-            "cursor_hover_info_system",
+            systems::CursorHoverTerrainInfoSystem,
+            "cursor_hover_terrain_info_system",
             &["cursor_movement_system"],
-        );
+        )
+        .with(systems::CursorHoverUnitInfoSystem,
+        "cursor_hover_unit_info_system",
+        &["cursor_movement_system"],);
 
     let assets_dir = format!("{}/assets/", env!("CARGO_MANIFEST_DIR"));
     let initial_state = states::MapState {
-        dimensions: (10, 10),
+        map: states::Map::new(10, 10),
     };
 
     Application::build(assets_dir, initial_state)?
