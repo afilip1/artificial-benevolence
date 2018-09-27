@@ -33,9 +33,12 @@ pub struct MapState {
 
 impl<'a, 'b> SimpleState<'a, 'b> for MapState {
     fn on_start(&mut self, data: StateData<GameData>) {
+        data.world.register::<components::Unit>();
+
         let sprite_sheet_handle = self.load_sprite_sheet(data.world);
 
         self.init_tiles(data.world, sprite_sheet_handle.clone());
+        self.init_units(data.world, sprite_sheet_handle.clone());
         self.init_cursor(data.world, sprite_sheet_handle);
         self.init_ui(data.world);
         self.init_camera(data.world);
@@ -58,20 +61,6 @@ impl MapState {
             .insert(texture_id, texture_handle);
 
         // TODO: reduce boilerplate (macros?)
-        let cursor_tex = TextureCoordinates {
-            left: 0.0,
-            right: 0.5,
-            bottom: 0.0,
-            top: 0.5,
-        };
-
-        let cursor_sprite = Sprite {
-            width: 32.0,
-            height: 32.0,
-            offsets: [0.0, 0.0],
-            tex_coords: cursor_tex,
-        };
-
         let ground_tex = TextureCoordinates {
             left: 0.0,
             right: 0.5,
@@ -100,9 +89,37 @@ impl MapState {
             tex_coords: water_tex,
         };
 
+        let cursor_tex = TextureCoordinates {
+            left: 0.0,
+            right: 0.5,
+            bottom: 0.0,
+            top: 0.5,
+        };
+
+        let cursor_sprite = Sprite {
+            width: 32.0,
+            height: 32.0,
+            offsets: [0.0, 0.0],
+            tex_coords: cursor_tex,
+        };
+
+        let tank_tex = TextureCoordinates {
+            left: 0.5,
+            right: 1.0,
+            bottom: 0.0,
+            top: 0.5,
+        };
+
+        let tank_sprite = Sprite {
+            width: 32.0,
+            height: 32.0,
+            offsets: [0.0, 0.0],
+            tex_coords: tank_tex,
+        };
+
         let sprite_sheet = SpriteSheet {
             texture_id,
-            sprites: vec![ground_sprite, water_sprite, cursor_sprite],
+            sprites: vec![ground_sprite, water_sprite, cursor_sprite, tank_sprite],
         };
 
         world
@@ -159,6 +176,22 @@ impl MapState {
             height,
             tiles,
         });
+    }
+
+    fn init_units(&mut self, world: &mut World, sprite_sheet_handle: SpriteSheetHandle) {
+        let sprite_render_tank = SpriteRender {
+            sprite_sheet: sprite_sheet_handle,
+            sprite_number: 3,
+            flip_horizontal: false,
+            flip_vertical: false,
+        };
+        
+        world.create_entity()
+            .with(GlobalTransform::default())
+            .with(Transform::default())
+            .with(components::Unit)
+            .with(sprite_render_tank)
+            .build();
     }
 
     fn init_cursor(&self, world: &mut World, sprite_sheet_handle: SpriteSheetHandle) {
