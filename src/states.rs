@@ -1,5 +1,6 @@
 #[macro_use]
 mod common;
+pub use self::common::*;
 
 use amethyst::{
     assets::Loader,
@@ -17,33 +18,6 @@ use amethyst::{
 };
 use crate::components;
 use itertools::iproduct;
-use std::iter;
-
-
-#[derive(Clone)]
-pub struct Map {
-    pub width: u8,
-    pub height: u8,
-    pub tiles: Vec<Entity>,
-    pub units: Vec<Option<Entity>>,
-}
-
-impl Map {
-    pub fn new(width: u8, height: u8) -> Map {
-        Map {
-            width,
-            height,
-            tiles: Vec::with_capacity((width * height) as usize),
-            units: iter::repeat(None).take((width * height) as usize).collect(),
-        }
-    }
-}
-
-pub struct Ui {
-    pub terrain: Entity,
-    pub unit: Entity,
-    pub selected_unit: Entity,
-}
 
 pub struct MapState {
     pub map: Map,
