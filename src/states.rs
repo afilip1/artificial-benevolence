@@ -14,9 +14,31 @@ use amethyst::{
 };
 use crate::components;
 use itertools::iproduct;
+use std::iter;
 
-const ARENA_WIDTH: f32 = 479.0;
-const ARENA_HEIGHT: f32 = 329.0;
+macro_rules! sprites {
+    ($dimensions:expr, $($sprite:ident => $left:expr, $top:expr, $width:expr, $height:expr),*) => ({
+        let mut sprites = vec![];
+        $(
+            let tex_coords = TextureCoordinates {
+                left: $left / $dimensions.0,
+                right: ($left + $width) / $dimensions.0,
+                bottom: 1.0 - (($top + $height) / $dimensions.1),
+                top: 1.0 - ($top / $dimensions.1),
+            };
+
+            let sprite = Sprite {
+                width: $width,
+                height: $height,
+                offsets: [0.0, 0.0],
+                tex_coords,
+            };
+
+            sprites.push(sprite);
+        )*;
+        sprites
+    });
+}
 
 #[derive(Clone)]
 pub struct Map {
@@ -29,9 +51,10 @@ pub struct Map {
 impl Map {
     pub fn new(width: u8, height: u8) -> Map {
         Map {
-            width, height,
-            tiles: Vec::with_capacity((width*height) as usize),
-            units: std::iter::repeat(None).take((width*height) as usize).collect(),
+            width,
+            height,
+            tiles: Vec::with_capacity((width * height) as usize),
+            units: iter::repeat(None).take((width * height) as usize).collect(),
         }
     }
 }
@@ -47,8 +70,6 @@ pub struct MapState {
 
 impl<'a, 'b> SimpleState<'a, 'b> for MapState {
     fn on_start(&mut self, data: StateData<GameData>) {
-        data.world.register::<components::Unit>();
-
         let sprite_sheet_handle = self.load_sprite_sheet(data.world);
 
         self.init_tiles(data.world, sprite_sheet_handle.clone());
@@ -76,66 +97,17 @@ impl MapState {
             .write_resource::<MaterialTextureSet>()
             .insert(texture_id, texture_handle);
 
-        // TODO: reduce boilerplate (macros?)
-        let ground_tex = TextureCoordinates {
-            left: 0.0,
-            right: 0.5,
-            bottom: 0.5,
-            top: 1.0,
-        };
-
-        let ground_sprite = Sprite {
-            width: 32.0,
-            height: 32.0,
-            offsets: [0.0, 0.0],
-            tex_coords: ground_tex,
-        };
-
-        let water_tex = TextureCoordinates {
-            left: 0.5,
-            right: 1.0,
-            bottom: 0.5,
-            top: 1.0,
-        };
-
-        let water_sprite = Sprite {
-            width: 32.0,
-            height: 32.0,
-            offsets: [0.0, 0.0],
-            tex_coords: water_tex,
-        };
-
-        let cursor_tex = TextureCoordinates {
-            left: 0.0,
-            right: 0.5,
-            bottom: 0.0,
-            top: 0.5,
-        };
-
-        let cursor_sprite = Sprite {
-            width: 32.0,
-            height: 32.0,
-            offsets: [0.0, 0.0],
-            tex_coords: cursor_tex,
-        };
-
-        let tank_tex = TextureCoordinates {
-            left: 0.5,
-            right: 1.0,
-            bottom: 0.0,
-            top: 0.5,
-        };
-
-        let tank_sprite = Sprite {
-            width: 32.0,
-            height: 32.0,
-            offsets: [0.0, 0.0],
-            tex_coords: tank_tex,
+        let sprites = sprites! {
+            (64.0, 64.0),
+            ground => 0.0, 0.0, 32.0, 32.0,
+            water => 32.0, 0.0, 32.0, 32.0,
+            cursor => 0.0, 32.0, 32.0, 32.0,
+            tank => 32.0, 32.0, 32.0, 32.0
         };
 
         let sprite_sheet = SpriteSheet {
             texture_id,
-            sprites: vec![ground_sprite, water_sprite, cursor_sprite, tank_sprite],
+            sprites,
         };
 
         world
@@ -194,14 +166,14 @@ impl MapState {
             flip_horizontal: false,
             flip_vertical: false,
         };
-        
-        let unit = world.create_entity()
+
+        let unit = world
+            .create_entity()
             .with(GlobalTransform::default())
             .with(Transform::default())
             .with(components::Unit {
                 kind: components::UnitKind::Tank,
-            })
-            .with(sprite_render_tank)
+            }).with(sprite_render_tank)
             .build();
 
         self.map.units[0] = Some(unit);
@@ -258,8 +230,12 @@ impl MapState {
         let terrain = world
             .create_entity()
             .with(ui_transform_terrain)
-            .with(UiText::new(font.clone(), String::new(), [1.0, 1.0, 1.0, 1.0], 36.0))
-            .build();
+            .with(UiText::new(
+                font.clone(),
+                String::new(),
+                [1.0, 1.0, 1.0, 1.0],
+                36.0,
+            )).build();
 
         let unit = world
             .create_entity()
@@ -267,11 +243,12 @@ impl MapState {
             .with(UiText::new(font, String::new(), [1.0, 1.0, 1.0, 1.0], 36.0))
             .build();
 
-        world.add_resource(Ui {terrain, unit});
+        world.add_resource(Ui { terrain, unit });
     }
 
     fn init_camera(&self, world: &mut World) {
-        let projection = Projection::orthographic(0.0, ARENA_WIDTH, ARENA_HEIGHT, 0.0);
+        let dimensions = (479.0, 329.0);
+        let projection = Projection::orthographic(0.0, dimensions.0, dimensions.1, 0.0);
         let matrix = Matrix4::from_translation(Vector3::new(0.0, 0.0, 1.0));
 
         world

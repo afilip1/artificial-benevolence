@@ -93,7 +93,8 @@ impl<'a> System<'a> for CursorHoverUnitInfoSystem {
 
     fn run(&mut self, (mut ui_text, cursors, units, map, ui): Self::SystemData) {
         for cursor in cursors.join() {
-            if let Some(hovered_unit_entity) = map.units[(cursor.1 * map.height + cursor.0) as usize]
+            if let Some(hovered_unit_entity) =
+                map.units[(cursor.1 * map.height + cursor.0) as usize]
             {
                 let hovered_unit = units.get(hovered_unit_entity).unwrap();
 

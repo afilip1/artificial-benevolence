@@ -59,10 +59,11 @@ fn main() -> Result<(), amethyst::Error> {
             systems::CursorHoverTerrainInfoSystem,
             "cursor_hover_terrain_info_system",
             &["cursor_movement_system"],
-        )
-        .with(systems::CursorHoverUnitInfoSystem,
-        "cursor_hover_unit_info_system",
-        &["cursor_movement_system"],);
+        ).with(
+            systems::CursorHoverUnitInfoSystem,
+            "cursor_hover_unit_info_system",
+            &["cursor_movement_system"],
+        );
 
     let assets_dir = format!("{}/assets/", env!("CARGO_MANIFEST_DIR"));
     let initial_state = states::MapState {

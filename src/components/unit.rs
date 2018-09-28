@@ -2,7 +2,7 @@ use amethyst::ecs::prelude::*;
 
 #[derive(Debug)]
 pub enum UnitKind {
-    Tank
+    Tank,
 }
 
 #[derive(Debug)]
