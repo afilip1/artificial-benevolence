@@ -1,3 +1,6 @@
+#[macro_use]
+mod common;
+
 use amethyst::{
     assets::Loader,
     core::{
@@ -7,8 +10,8 @@ use amethyst::{
     ecs::prelude::*,
     prelude::*,
     renderer::{
-        Camera, MaterialTextureSet, PngFormat, Projection, Sprite, SpriteRender, SpriteSheet,
-        SpriteSheetHandle, TextureCoordinates,
+        Camera, MaterialTextureSet, PngFormat, Projection, SpriteRender, SpriteSheet,
+        SpriteSheetHandle,
     },
     ui::{Anchor, TtfFormat, UiText, UiTransform},
 };
@@ -16,29 +19,6 @@ use crate::components;
 use itertools::iproduct;
 use std::iter;
 
-macro_rules! sprites {
-    ($dimensions:expr, $($sprite:ident => $left:expr, $top:expr, $width:expr, $height:expr),*) => ({
-        let mut sprites = vec![];
-        $(
-            let tex_coords = TextureCoordinates {
-                left: $left / $dimensions.0,
-                right: ($left + $width) / $dimensions.0,
-                bottom: 1.0 - (($top + $height) / $dimensions.1),
-                top: 1.0 - ($top / $dimensions.1),
-            };
-
-            let sprite = Sprite {
-                width: $width,
-                height: $height,
-                offsets: [0.0, 0.0],
-                tex_coords,
-            };
-
-            sprites.push(sprite);
-        )*;
-        sprites
-    });
-}
 
 #[derive(Clone)]
 pub struct Map {
@@ -62,6 +42,7 @@ impl Map {
 pub struct Ui {
     pub terrain: Entity,
     pub unit: Entity,
+    pub selected_unit: Entity,
 }
 
 pub struct MapState {
@@ -130,9 +111,7 @@ impl MapState {
             flip_vertical: false,
         };
 
-        let (width, height) = (self.map.width, self.map.height);
-
-        for (y, x) in iproduct!(0..height, 0..width) {
+        for (y, x) in iproduct!(0..self.map.height, 0..self.map.width) {
             let mut transform = Transform::default();
             transform.translation = Vector3::new(f32::from(x) * 33.0, f32::from(y) * 33.0, 0.0);
 
@@ -205,50 +184,84 @@ impl MapState {
             &world.read_resource(),
         );
 
-        let ui_transform_terrain = UiTransform::new(
-            "ui_terrain".to_string(),
-            Anchor::TopRight,
-            -140.0,
-            30.0,
-            1.0,
-            300.0,
-            50.0,
-            0,
-        );
+        let terrain = {
+            let transform = UiTransform::new(
+                "ui_terrain".to_string(),
+                Anchor::TopRight,
+                -140.0,
+                30.0,
+                1.0,
+                300.0,
+                50.0,
+                0,
+            );
 
-        let ui_transform_unit = UiTransform::new(
-            "ui_unit".to_string(),
-            Anchor::TopRight,
-            -140.0,
-            80.0,
-            1.0,
-            300.0,
-            50.0,
-            0,
-        );
+            world
+                .create_entity()
+                .with(transform)
+                .with(UiText::new(
+                    font.clone(),
+                    String::new(),
+                    [1.0, 1.0, 1.0, 1.0],
+                    36.0,
+                )).build()
+        };
 
-        let terrain = world
-            .create_entity()
-            .with(ui_transform_terrain)
-            .with(UiText::new(
-                font.clone(),
-                String::new(),
-                [1.0, 1.0, 1.0, 1.0],
-                36.0,
-            )).build();
+        let unit = {
+            let transform = UiTransform::new(
+                "ui_unit".to_string(),
+                Anchor::TopRight,
+                -140.0,
+                80.0,
+                1.0,
+                300.0,
+                50.0,
+                0,
+            );
 
-        let unit = world
-            .create_entity()
-            .with(ui_transform_unit)
-            .with(UiText::new(font, String::new(), [1.0, 1.0, 1.0, 1.0], 36.0))
-            .build();
+            world
+                .create_entity()
+                .with(transform)
+                .with(UiText::new(
+                    font.clone(),
+                    String::new(),
+                    [1.0, 1.0, 1.0, 1.0],
+                    36.0,
+                )).build()
+        };
 
-        world.add_resource(Ui { terrain, unit });
+        let selected_unit = {
+            let transform = UiTransform::new(
+                "ui_selected_unit".to_string(),
+                Anchor::TopRight,
+                -140.0,
+                130.0,
+                1.0,
+                300.0,
+                50.0,
+                0,
+            );
+
+            world
+                .create_entity()
+                .with(transform)
+                .with(UiText::new(
+                    font,
+                    "Selected: none".to_string(),
+                    [1.0, 1.0, 1.0, 1.0],
+                    36.0,
+                )).build()
+        };
+
+        world.add_resource(Ui {
+            terrain,
+            unit,
+            selected_unit,
+        });
     }
 
     fn init_camera(&self, world: &mut World) {
-        let dimensions = (479.0, 329.0);
-        let projection = Projection::orthographic(0.0, dimensions.0, dimensions.1, 0.0);
+        let projection = Projection::orthographic(0.0, 479.0, 329.0, 0.0);
         let matrix = Matrix4::from_translation(Vector3::new(0.0, 0.0, 1.0));
 
         world

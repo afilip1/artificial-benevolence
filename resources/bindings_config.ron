@@ -5,5 +5,6 @@
       "right": [Key(Right)],
       "up": [Key(Up)],
       "down": [Key(Down)],
+      "select": [Key(Space)]
   },
 )

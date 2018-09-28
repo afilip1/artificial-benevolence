@@ -63,6 +63,10 @@ fn main() -> Result<(), amethyst::Error> {
             systems::CursorHoverUnitInfoSystem,
             "cursor_hover_unit_info_system",
             &["cursor_movement_system"],
+        ).with(
+            systems::CursorUnitSelectSystem,
+            "cursor_unit_select_system",
+            &["cursor_movement_system"],
         );
 
     let assets_dir = format!("{}/assets/", env!("CARGO_MANIFEST_DIR"));

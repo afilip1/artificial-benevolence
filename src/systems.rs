@@ -101,9 +101,38 @@ impl<'a> System<'a> for CursorHoverUnitInfoSystem {
                 if let Some(text) = ui_text.get_mut(ui.unit) {
                     text.text = format!("Unit: {:?}", hovered_unit.kind);
                 }
-            } else {
-                if let Some(text) = ui_text.get_mut(ui.unit) {
-                    text.text = format!("Unit: none");
+            } else if let Some(text) = ui_text.get_mut(ui.unit) {
+                text.text = "Unit: none".to_string();
+            }
+        }
+    }
+}
+
+pub struct CursorUnitSelectSystem;
+
+impl<'a> System<'a> for CursorUnitSelectSystem {
+    type SystemData = (
+        WriteStorage<'a, UiText>,
+        ReadStorage<'a, Cursor>,
+        ReadStorage<'a, Unit>,
+        ReadExpect<'a, Map>,
+        ReadExpect<'a, Ui>,
+        Read<'a, InputHandler<String, String>>,
+    );
+
+    fn run(&mut self, (mut ui_text, cursors, units, map, ui, input): Self::SystemData) {
+        if let Some(true) = input.action_is_down("select") {
+            for cursor in cursors.join() {
+                if let Some(hovered_unit_entity) =
+                    map.units[(cursor.1 * map.height + cursor.0) as usize]
+                {
+                    let selected_unit = units.get(hovered_unit_entity).unwrap();
+
+                    if let Some(text) = ui_text.get_mut(ui.selected_unit) {
+                        text.text = format!("Selected: {:?}", selected_unit.kind);
+                    }
+                } else if let Some(text) = ui_text.get_mut(ui.selected_unit) {
+                    text.text = "Selected: none".to_string();
                 }
             }
         }
